@@ -7,10 +7,7 @@ from collections import defaultdict
 import re
 import time
 
-def dict1(l):
-	return dict([(x.lower(),'') \
-		if len(x) == 1 else (x[0].lower(), x[1])
-			for x in l])
+def dict1(l): return dict([(x[0].lower(), '' if len(x) == 1 else x[1]) for x in l])
 def spl(s, c): return s.split(c, 1) if c in s else (s,'')
 
 class NotHTTP(Exception):
