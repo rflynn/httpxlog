@@ -6,6 +6,7 @@ import pycap.protocol as prot
 from collections import defaultdict
 import re
 import time
+from optparse import OptionParser
 
 def dict1(l): return dict([(x[0].lower(), '' if len(x) == 1 else x[1]) for x in l])
 def spl(s, c): return s.split(c, 1) if c in s else (s,'')
@@ -27,30 +28,41 @@ class HTTP:
 		self.query = dict1([spl(s, '=') for s in re.split('&(?:amp;)?', self.querystring)])
 		self.host = self.headers.get('host', '')
 		self.url = 'http://' + self.host + self.path
+		self.fullurl = 'http://' + self.host + self.fullpath
 	def __repr__(self):
 		return 'method=%s path=%s httpver=%s query=%s headers=%s' % (
 			self.method, self.path, self.httpver, self.query, self.headers)
 	def __str__(self):
 		return repr(self)
 
-def payload(s, packet):
+def payload(s, opts, fd):
 	try:
 		h = HTTP(s)
 		referer = h.headers.get('referer', None)
 		if referer:
-			print '%s %s %s' % (referer, h.url, time.time())
+			url = h.fullurl if opts.include_query else h.url
+			print >> fd, '%s %s %s' % (referer, url, time.time())
 	except NotHTTP:
 		pass
 
-p = cap.capture()
-try:
-	while True:
-		packet = p.next()
-		if not packet:
-			continue
-		for x in packet:
-			if type(x) == str:
-				payload(x, packet)
-except KeyboardInterrupt, e:
-	pass
+if __name__ == '__main__':
+
+	import sys
+
+	parser = OptionParser()
+	# TODO: capture on non-default interface
+	parser.add_option("--include-query", action="store_true", default=False, help="should URL include querystring http://foo vs. http://foo?query")
+	(Opts, Args) = parser.parse_args()
+
+	p = cap.capture()
+	try:
+		while True:
+			packet = p.next()
+			if not packet:
+				continue
+			for x in packet:
+				if type(x) == str:
+					payload(x, Opts, sys.stdout)
+	except KeyboardInterrupt, e:
+		pass
 
