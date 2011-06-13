@@ -15,7 +15,7 @@ class HTTP_NotHTTP(Exception):
 
 class HTTP_Req:
 	def __init__(self, s, ts):
-		m = re.match(r'^(GET|POST) (\S{1,4096}) HTTP/(1.\d)\r\n', s)
+		m = re.match(r'^(GET|POST|PUT|DELETE|TRACE|CONNECT|OPTIONS|HEAD) (\S{1,4096}) HTTP/(1.\d)\r\n', s)
 		if not m:
 			raise HTTP_NotHTTP
 		self.method, self.fullpath, self.httpver = m.groups()
@@ -50,11 +50,6 @@ class HTTP_Req:
 			return []
 		kv = flatten(c.strip().split('&') for c in cookies.split(';'))
 		return [spl(val, '=') for val in kv]
-	def dump(self, opts, reqcache):
-		url = self.geturl(opts)
-		ref = self.referer(url)
-		return '%.2f %s %s %s outstanding=%u' % (
-			self.ts, self.method, ref, url, len(reqcache))
 
 class HTTP_Resp:
 	def __init__(self, s, ts):
@@ -71,19 +66,11 @@ class HTTP_Resp:
 		return 'RESP code=%3u httpver=%s' % (self.code, self.httpver)
 	def __str__(self):
 		return repr(self)
-	def dump(self, req, opts, reqcache):
-		latency = max(0.001, self.ts_start - req.ts)
-		totaltime = max(0.001, self.ts_last - req.ts)
-		rate = self.size / totaltime / 1024.0
-		url = req.geturl(opts)
-		ref = req.referer(url)
-		return '%.2f %s %s %s complete=%.3fs latency=%.3fs rate=%.1fK/s queued=%u' % (
-			self.ts_last, self.code, ref, url, totaltime, latency, rate, len(reqcache))
 
 class HTTP_ReqCache:
 	""""""
-	def __init__(self, action, max_age_sec=120):
-		self.action = action
+	def __init__(self, act, max_age_sec=120):
+		self.act = act
 		self.max_age_sec = max_age_sec
 		self.map = {}		# requests keyed by IP:IP:srcport
 		self.ordered = []	# requests in order to facilitate timeout

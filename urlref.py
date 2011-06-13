@@ -14,12 +14,26 @@ ETH_MTU = 1500
 class Action:
 	def __init__(self):
 		pass
-	def on_http_req(self, req):
-		pass
-	def on_http_resp(self, resp, req, opts, reqcache, fd):
-		print >> fd, resp.dump(req, opts, reqcache)
+
+	def on_http_req(self, req, opts, reqcache):
+		url = req.geturl(opts)
+		ref = req.referer(url)
+		print >> opts.logfd, '%.2f %s %s %s queue=%u' % (
+			req.ts, req.method, ref, url, len(reqcache))
+
+	def on_http_resp(self, req, opts, reqcache):
+		resp = req.resp
+		latency = max(0.001, resp.ts_start - req.ts)
+		totaltime = max(0.001, resp.ts_last - req.ts)
+		rate = resp.size / totaltime / 1024.0
+		url = req.geturl(opts)
+		ref = req.referer(url)
+		print >> opts.logfd, \
+			'%.2f %s %s %s complete=%.3fs latency=%.3fs rate=%.1fK/s queue=%u' % (
+			resp.ts_last, resp.code, ref, url, totaltime, latency, rate, len(reqcache))
+
 	def on_http_resp_timeout(self, resp, ts):
-		print '*** TIMED OUT (%us): %s' % (ts - too_old.ts, too_old)
+		print '%.2f TIMEOUT (%us): %s' % (ts, ts - resp.ts, resp)
 
 def cookies_check(req):
 	cookies = req.each_cookie()
@@ -28,13 +42,6 @@ def cookies_check(req):
 	passwords += kv_vgrep(cookies, 'p(?:ass)?wo?r?d|pass', re.I)
 	if usernames: print 'Cookie plaintext usernames=', usernames
 	if passwords: print 'Cookie plaintext passwords=', passwords
-
-def on_http_req(req, opts, reqcache, fd):
-	print >> fd, req.dump(opts, reqcache)
-	#print >> fd, 'Headers:', req.headers
-	if req.cookies():
-		print >> fd, 'Cookies:', req.each_cookie()
-		cookies_check(req)
 
 # TODO: refactor parameters
 def on_tcp(ip, tcp, s, ts, act, reqcache, opts, fd):
@@ -54,35 +61,13 @@ def on_tcp(ip, tcp, s, ts, act, reqcache, opts, fd):
 				# last packet because it's less than full
 				resp.ts_last = ts
 				reqcache.remove(req)
-				act.on_http_resp(resp, req, opts, reqcache, fd)
+				act.on_http_resp(req, opts, reqcache)
 		else:
 			req = HTTP_Req(s, ts)
 			reqcache.add(ip, tcp, req)
-			on_http_req(req, opts, reqcache, fd)
+			act.on_http_req(req, opts, reqcache)
 	except HTTP_NotHTTP:
 		pass
-		"""
-		# check closed connections, toss out associated requests
-		if tcp.flags & const.tcp.TH_RST:
-			# RST: reset connection
-			# is unusual, can come from either end...
-			# we can either look up both possibilities, or just wait
-			# for a request to timeout...
-			print '*** RST', ip, tcp
-			print 'map before', reqcache.map
-			req = reqcache.get(ip, tcp, False)
-			if req:
-				reqcache.remove(req)
-			print 'map after', reqcache.map
-		if tcp.flags & const.tcp.TH_FIN:
-			if tcp.flags & const.tcp.TH_ACK:
-				print '*** FIN ACK', ip, tcp
-				req = reqcache.get(ip, tcp)
-				if req:
-					reqcache.remove(req)
-			else:
-				print '*** FIN', ip, tcp
-		"""
 
 if __name__ == '__main__':
 
