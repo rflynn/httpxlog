@@ -103,11 +103,14 @@ if __name__ == '__main__':
 	import sys
 	import signal
 	import time
+	import os
 
 	parser = OptionParser()
 	# TODO: capture on non-default interface
-	parser.add_option("--include-query", action="store_true", default=False,
-		help="should URL include querystring http://foo vs. http://foo?query")
+	parser.add_option('--include-query', action='store_true', default=False,
+		help='should URL include querystring http://foo vs. http://foo?query')
+	parser.add_option('-i', '--interface', action='store', dest='interface',
+		help='select interface to listen on. default chosen by libpcap')
 	Opts, Args = parser.parse_args()
 	Opts.logfd = sys.stdout
 
@@ -120,7 +123,18 @@ if __name__ == '__main__':
 	signal.signal(signal.SIGALRM, check_cache)
 	signal.setitimer(signal.ITIMER_REAL, reqcache.max_age_sec, 1)
 
-	p = cap.capture()
+	try:
+		capargs = []
+		if Opts.interface:
+			print 'listening on %s...' % Opts.interface
+			capargs.append(Opts.interface)
+		p = cap.capture(*capargs)
+	except Exception as e:
+		print e
+		if 'no suitable device found' in str(e):
+			if not hasattr(os, 'geteuid') or os.geteuid() != 0:
+				print >> sys.stderr, 'try running as root'
+		exit(1)
 	try:
 		while True:
 			packet = p.next()
