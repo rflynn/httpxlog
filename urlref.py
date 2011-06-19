@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+"""
+external http logging by packet sniffing TCP/IP
+this approach allows us several advantages over built-in httpd logging:
+	* multiple httpds at once
+	* availablility of performance data that is not available in standard logs, such as:
+		* latency: time between request and initial response
+		* queue: number of outstanding requests
+	* flexibility; use to monitor servers' or clients' perspective
+
+Author: Ryan Flynn <parseerror@gmail.com>
+
+Caveats:
+	* assumes Ethernet
+
+TODO:
+	* support apache CustomLog log format: http://httpd.apache.org/docs/1.3/mod/mod_log_config.html#formats
+"""
+
 import pycap.capture as cap
 import pycap.constants as const
 import pycap.protocol as prot
