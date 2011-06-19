@@ -7,6 +7,7 @@ urlref utility functions
 import re
 from collections import defaultdict
 from itertools import chain
+from datetime import datetime
 
 def spl(s, c): return tuple(s.split(c, 1)) if c in s else (s,'')
 def flatten(l): return list(chain.from_iterable(l))
@@ -21,4 +22,9 @@ def kv_grep(kvs, nth, pattern, opts):
 	return list(filter(lambda kv: re.search(pattern, kv[nth], opts), kvs))
 def kv_kgrep(kvs, pattern, opts): return kv_grep(kvs, 0, pattern, opts)
 def kv_vgrep(kvs, pattern, opts): return kv_grep(kvs, 1, pattern, opts)
+
+def time2utcstr(t):
+	"""convert time.time() value (produced by pycap) to utc string suitable for log"""
+	utc = datetime.utcfromtimestamp(t)
+	return utc.strftime("%Y-%m-%d %H:%M:%S.%f")
 

@@ -7,7 +7,7 @@ import re
 from optparse import OptionParser
 
 from http import HTTP_Req, HTTP_Resp, HTTP_NotHTTP, HTTP_ReqCache
-from util import spl, flatten, dict1, kv_kgrep, kv_vgrep
+from util import spl, flatten, dict1, kv_kgrep, kv_vgrep, time2utcstr
 
 ETH_MTU = 1500
 
@@ -18,8 +18,8 @@ class Action:
 	def on_http_req(self, req, opts, reqcache):
 		url = req.geturl(opts)
 		ref = req.referer(url)
-		print >> opts.logfd, '%.2f %s %s %s queue=%u' % (
-			req.ts, req.method, ref, url, len(reqcache))
+		print >> opts.logfd, '%s %s %s %s queue=%u' % (
+			time2utcstr(req.ts), req.method, ref, url, len(reqcache))
 
 	def on_http_resp(self, req, opts, reqcache):
 		resp = req.resp
