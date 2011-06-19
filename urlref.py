@@ -108,12 +108,13 @@ if __name__ == '__main__':
 	# TODO: capture on non-default interface
 	parser.add_option("--include-query", action="store_true", default=False,
 		help="should URL include querystring http://foo vs. http://foo?query")
-	(Opts, Args) = parser.parse_args()
+	Opts, Args = parser.parse_args()
 	Opts.logfd = sys.stdout
 
 	act = Action.instance()
 	reqcache = HTTP_ReqCache(act)
 
+	# timeout requests from the cache on a regular basis
 	def check_cache(signum, _):
 		reqcache.check(time.time())
 	signal.signal(signal.SIGALRM, check_cache)
@@ -128,7 +129,7 @@ if __name__ == '__main__':
 				continue
 			# NOTE: this is fragile, there are other possible packet
 			# scenarios (Teredo) that will break this
-			eth,ip,tcp,s,ts = packet
+			eth, ip, tcp, s, ts = packet
 			if type(s) != str or type(tcp) != prot.tcp or type(ip) != prot.ip:
 				continue
 			# number of ethernet payload bytes for calculating MTU
