@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-HTTP-parsing for urlref app
+HTTP-parsing for httpxlog app
 Couldn't find a decent standalone
 """
 
