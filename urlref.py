@@ -29,13 +29,14 @@ class Action:
 		url = req.geturl(opts)
 		ref = req.referer(url)
 		print >> opts.logfd, \
-			'%.2f %s %s %s complete=%.3fs latency=%.3fs rate=%.1fK/s queue=%u' % (
-			resp.ts_last, resp.code, ref, url, totaltime, latency, rate, len(reqcache))
+			'%s %s %s %s complete=%.3fs latency=%.3fs rate=%.1fK/s queue=%u' % (
+			time2utcstr(resp.ts_last), resp.code, ref, url, totaltime, latency, rate, len(reqcache))
 
 	def on_http_resp_timeout(self, resp, ts):
 		print '%.2f TIMEOUT (%us): %s' % (ts, ts - resp.ts, resp)
 
 def cookies_check(req):
+	"""scan plaintext cookies for potentially sensitive information"""
 	cookies = req.each_cookie()
 	usernames = kv_kgrep(cookies, 'user(?:name)?|uname|uid', re.I)
 	passwords = kv_kgrep(cookies, 'p(?:ass)wo?r?d|pass', re.I)
