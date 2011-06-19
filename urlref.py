@@ -25,12 +25,13 @@ class Action:
 		resp = req.resp
 		latency = max(0.001, resp.ts_start - req.ts)
 		totaltime = max(0.001, resp.ts_last - req.ts)
-		rate = resp.size / totaltime / 1024.0
+		sizekb = resp.size / 1024.0
+		rate = sizekb / totaltime
 		url = req.geturl(opts)
 		ref = req.referer(url)
 		print >> opts.logfd, \
-			'%s %s %s %s complete=%.3fs latency=%.3fs rate=%.1fK/s queue=%u' % (
-			time2utcstr(resp.ts_last), resp.code, ref, url, totaltime, latency, rate, len(reqcache))
+			'%s %s %s %s complete=%.3fs latency=%.3fs size=%.1fK rate=%.1fK/s queue=%u' % (
+			time2utcstr(resp.ts_last), resp.code, ref, url, totaltime, latency, sizekb, rate, len(reqcache))
 
 	def on_http_resp_timeout(self, resp, ts):
 		print '%.2f TIMEOUT (%us): %s' % (ts, ts - resp.ts, resp)
