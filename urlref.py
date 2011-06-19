@@ -12,8 +12,17 @@ from util import spl, flatten, dict1, kv_kgrep, kv_vgrep, time2utcstr
 ETH_MTU = 1500
 
 class Action:
+
+	_instance = None
+
 	def __init__(self):
 		pass
+
+	@staticmethod
+	def instance():
+		if not Action._instance:
+			Action._instance = Action()
+		return Action._instance
 
 	def on_http_req(self, req, opts, reqcache):
 		url = req.geturl(opts)
@@ -46,7 +55,7 @@ def cookies_check(req):
 	if passwords: print 'Cookie plaintext passwords=', passwords
 
 # TODO: refactor parameters
-def on_tcp(ip, tcp, s, ts, act, reqcache, opts, fd):
+def on_tcp(ip, tcp, s, ts, reqcache, opts):
 	"""on each TCP packet try to parse HTTP"""
 	try:
 		req = reqcache.get(ip, tcp)
@@ -63,11 +72,11 @@ def on_tcp(ip, tcp, s, ts, act, reqcache, opts, fd):
 				# last packet because it's less than full
 				resp.ts_last = ts
 				reqcache.remove(req)
-				act.on_http_resp(req, opts, reqcache)
+				Action.instance().on_http_resp(req, opts, reqcache)
 		else:
 			req = HTTP_Req(s, ts)
 			reqcache.add(ip, tcp, req)
-			act.on_http_req(req, opts, reqcache)
+			Action.instance().on_http_req(req, opts, reqcache)
 	except HTTP_NotHTTP:
 		pass
 
@@ -84,7 +93,7 @@ if __name__ == '__main__':
 	(Opts, Args) = parser.parse_args()
 	Opts.logfd = sys.stdout
 
-	act = Action()
+	act = Action.instance()
 	reqcache = HTTP_ReqCache(act)
 
 	def check_cache(signum, _):
@@ -105,7 +114,7 @@ if __name__ == '__main__':
 			if type(s) != str or type(tcp) != prot.tcp or type(ip) != prot.ip:
 				continue
 			# number of ethernet payload bytes for calculating MTU
-			on_tcp(ip, tcp, s, ts, act, reqcache, Opts, sys.stdout)
+			on_tcp(ip, tcp, s, ts, reqcache, Opts)
 	except KeyboardInterrupt, e:
 		pass
 
