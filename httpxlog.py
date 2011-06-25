@@ -98,6 +98,19 @@ def on_tcp(ip, tcp, s, ts, reqcache, opts):
 	except HTTP_NotHTTP:
 		pass
 
+def opts2capargs(Opts):
+	"""convert cmdline params via optparse into keywords suitable for pycap"""
+	args = {
+		'promisc' : Opts.promisc
+	}
+	if Opts.interface:
+		print 'listening on %s...' % Opts.interface
+		args['device'] = Opts.interface
+	if Opts.filename:
+		print "capturing from file '%s'..." % Opts.filename
+		args['filename'] = Opts.filename
+	return args
+
 if __name__ == '__main__':
 
 	import sys
@@ -106,11 +119,10 @@ if __name__ == '__main__':
 	import os
 
 	parser = OptionParser()
-	# TODO: capture on non-default interface
-	parser.add_option('--include-query', action='store_true', default=False,
-		help='should URL include querystring http://foo vs. http://foo?query')
-	parser.add_option('-i', '--interface', action='store', dest='interface',
-		help='select interface to listen on. default chosen by libpcap')
+	parser.add_option('--include-query',       action='store_true',                    default=False, help='include querystring http://foo vs. http://foo?query')
+	parser.add_option('-i', '--interface',     action='store',       dest='interface',                help='select interface to listen on. default chosen by libpcap')
+	parser.add_option('-f', '--file',          action='store',       dest='filename',                 help='capture from a .pcap file, not from the live network')
+	parser.add_option('--np', '--non-promisc', action='store_false', dest='promisc',   default=True,  help='do not listen promiscuously. default: False')
 	Opts, Args = parser.parse_args()
 	Opts.logfd = sys.stdout
 
@@ -123,12 +135,10 @@ if __name__ == '__main__':
 	signal.signal(signal.SIGALRM, check_cache)
 	signal.setitimer(signal.ITIMER_REAL, reqcache.max_age_sec, 1)
 
+	capargs = opts2capargs(Opts)
+
 	try:
-		capargs = []
-		if Opts.interface:
-			print 'listening on %s...' % Opts.interface
-			capargs.append(Opts.interface)
-		p = cap.capture(*capargs)
+		p = cap.capture(**capargs)
 	except Exception as e:
 		print e
 		if 'no suitable device found' in str(e):
