@@ -147,7 +147,11 @@ if __name__ == '__main__':
 		exit(1)
 	try:
 		while True:
-			packet = p.next()
+			try:
+				packet = p.next()
+			except prot.error, e:
+				print e
+				continue
 			# we assume HTTP will be: eth:ip:tcp:http:timestamp
 			if not packet or len(packet) != 5:
 				continue
